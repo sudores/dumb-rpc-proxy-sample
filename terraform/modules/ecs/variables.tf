@@ -10,7 +10,7 @@ variable "tags" {
 }
 
 variable "subnet_ids" {
-  type        = set(string)
+  type        = list(string)
   description = "Subnet IDs for the EC2 autoscaling group"
 }
 

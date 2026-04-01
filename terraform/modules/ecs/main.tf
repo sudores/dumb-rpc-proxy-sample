@@ -1,8 +1,5 @@
 locals {
-  supported_subnet_ids = toset([
-    for id, s in data.aws_subnet.all : id
-    if contains(toset(data.aws_ec2_instance_type_offerings.this.locations), s.availability_zone)
-  ])
+  supported_subnet_ids = toset(data.aws_subnets.supported.ids)
 
   user_data = <<-EOT
     #!/bin/bash
@@ -103,9 +100,17 @@ data "aws_ec2_instance_type_offerings" "this" {
   location_type = "availability-zone"
 }
 
-data "aws_subnet" "all" {
-  for_each = var.subnet_ids
-  id       = each.value
+# Returns only subnets from var.subnet_ids that sit in AZs where the
+# instance type is actually offered — avoids "unsupported AZ" ASG errors.
+data "aws_subnets" "supported" {
+  filter {
+    name   = "subnet-id"
+    values = tolist(var.subnet_ids)
+  }
+  filter {
+    name   = "availability-zone"
+    values = data.aws_ec2_instance_type_offerings.this.locations
+  }
 }
 
 data "aws_ssm_parameter" "ecs_optimized_ami" {
