@@ -1,6 +1,7 @@
 package proxy_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -9,16 +10,18 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+
 	"github.com/sudores/twt-test-task/pkg/proxy"
 )
 
 // newTestProxy creates a Proxy pointed at the given upstream URL.
 func newTestProxy(t *testing.T, upstreamURL string) http.Handler {
 	t.Helper()
+	nop := zerolog.Nop()
 	p, err := proxy.New(proxy.Config{
 		UpstreamURL: upstreamURL,
 		Timeout:     5 * time.Second,
-	}, zerolog.Nop())
+	}, &nop)
 	if err != nil {
 		t.Fatalf("proxy.New: %v", err)
 	}
@@ -41,7 +44,7 @@ func fakeUpstream(t *testing.T, statusCode int, response string) *httptest.Serve
 
 func TestHealthCheck(t *testing.T) {
 	h := newTestProxy(t, "http://localhost")
-	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/health", http.NoBody)
 	w := httptest.NewRecorder()
 
 	h.ServeHTTP(w, req)
@@ -65,7 +68,7 @@ func TestOnlyPOSTAllowed(t *testing.T) {
 	h := newTestProxy(t, "http://localhost")
 
 	for _, method := range []string{http.MethodGet, http.MethodPut, http.MethodDelete} {
-		req := httptest.NewRequest(method, "/", nil)
+		req := httptest.NewRequestWithContext(context.Background(), method, "/", http.NoBody)
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, req)
 		if w.Code != http.StatusMethodNotAllowed {
@@ -81,7 +84,7 @@ func TestSingleRPCRequest(t *testing.T) {
 	h := newTestProxy(t, upstream.URL)
 
 	body := `{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}`
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -109,7 +112,7 @@ func TestBatchRPCRequest(t *testing.T) {
 
 	body := `[{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]},` +
 		`{"jsonrpc":"2.0","id":2,"method":"eth_chainId","params":[]}]`
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -136,7 +139,7 @@ func TestUpstreamRPCError(t *testing.T) {
 	h := newTestProxy(t, upstream.URL)
 
 	body := `{"jsonrpc":"2.0","id":1,"method":"eth_nonExistent","params":[]}`
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -164,7 +167,7 @@ func TestUpstreamUnavailable(t *testing.T) {
 	h := newTestProxy(t, "http://127.0.0.1:1")
 
 	body := `{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}`
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -190,7 +193,7 @@ func TestUpstreamHTTPErrorPassthrough(t *testing.T) {
 	h := newTestProxy(t, upstream.URL)
 
 	body := `{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}`
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -208,17 +211,18 @@ func TestIntegration_EthBlockNumber(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
+	nop := zerolog.Nop()
 	p, err := proxy.New(proxy.Config{
 		UpstreamURL: "https://polygon.drpc.org",
 		Timeout:     10 * time.Second,
-	}, zerolog.Nop())
+	}, &nop)
 	if err != nil {
 		t.Fatalf("proxy.New: %v", err)
 	}
 	h := p.Handler()
 
 	body := `{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}`
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 

@@ -60,7 +60,7 @@ func (l *ipLimiter) cleanup(interval, ttl time.Duration) {
 
 // RateLimit returns a per-IP token-bucket rate limiting middleware.
 // Stale IP entries are pruned every minute after 3 minutes of inactivity.
-func RateLimit(rps float64, burst int, logger zerolog.Logger) func(http.Handler) http.Handler {
+func RateLimit(rps float64, burst int, logger *zerolog.Logger) func(http.Handler) http.Handler {
 	lim := newIPLimiter(rate.Limit(rps), burst)
 	go lim.cleanup(time.Minute, 3*time.Minute)
 

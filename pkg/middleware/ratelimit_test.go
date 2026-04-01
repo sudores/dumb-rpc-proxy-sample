@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/rs/zerolog"
+
 	"github.com/sudores/twt-test-task/pkg/middleware"
 )
 
@@ -21,11 +22,11 @@ var okHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 func TestRateLimit_AllowsUnderLimit(t *testing.T) {
 	// burst=10 means first 10 requests go through immediately.
-	rl := middleware.RateLimit(100, 10, nopLogger)
+	rl := middleware.RateLimit(100, 10, &nopLogger)
 	h := rl(okHandler)
 
 	for i := range 5 {
-		req := httptest.NewRequest(http.MethodPost, "/", nil)
+		req := httptest.NewRequest(http.MethodPost, "/", http.NoBody)
 		req.RemoteAddr = "10.0.0.1:1234"
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, req)
@@ -37,13 +38,13 @@ func TestRateLimit_AllowsUnderLimit(t *testing.T) {
 
 func TestRateLimit_Blocks_WhenBurstExceeded(t *testing.T) {
 	// rps=1, burst=2: first 2 requests pass, 3rd is rejected.
-	rl := middleware.RateLimit(1, 2, nopLogger)
+	rl := middleware.RateLimit(1, 2, &nopLogger)
 	h := rl(okHandler)
 
 	pass := 0
 	blocked := 0
 	for range 5 {
-		req := httptest.NewRequest(http.MethodPost, "/", nil)
+		req := httptest.NewRequest(http.MethodPost, "/", http.NoBody)
 		req.RemoteAddr = "10.0.0.2:5678"
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, req)
@@ -66,10 +67,10 @@ func TestRateLimit_Blocks_WhenBurstExceeded(t *testing.T) {
 }
 
 func TestRateLimit_BlockedResponse_IsValidJSON(t *testing.T) {
-	rl := middleware.RateLimit(0, 0, nopLogger) // burst=0 blocks everything
+	rl := middleware.RateLimit(0, 0, &nopLogger) // burst=0 blocks everything
 	h := rl(okHandler)
 
-	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req := httptest.NewRequest(http.MethodPost, "/", http.NoBody)
 	req.RemoteAddr = "10.0.0.3:9999"
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
@@ -96,11 +97,11 @@ func TestRateLimit_BlockedResponse_IsValidJSON(t *testing.T) {
 
 func TestRateLimit_SeparateLimitsPerIP(t *testing.T) {
 	// burst=1: each IP gets exactly 1 request before being throttled.
-	rl := middleware.RateLimit(0, 1, nopLogger)
+	rl := middleware.RateLimit(0, 1, &nopLogger)
 	h := rl(okHandler)
 
 	for _, ip := range []string{"1.1.1.1", "2.2.2.2", "3.3.3.3"} {
-		req := httptest.NewRequest(http.MethodPost, "/", nil)
+		req := httptest.NewRequest(http.MethodPost, "/", http.NoBody)
 		req.RemoteAddr = ip + ":1234"
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, req)
@@ -111,11 +112,11 @@ func TestRateLimit_SeparateLimitsPerIP(t *testing.T) {
 }
 
 func TestRateLimit_ReadsXRealIP(t *testing.T) {
-	rl := middleware.RateLimit(0, 1, nopLogger)
+	rl := middleware.RateLimit(0, 1, &nopLogger)
 	h := rl(okHandler)
 
 	// First request from "real" IP via header — should pass (burst=1).
-	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req := httptest.NewRequest(http.MethodPost, "/", http.NoBody)
 	req.RemoteAddr = "127.0.0.1:0"
 	req.Header.Set("X-Real-IP", "5.5.5.5")
 	w := httptest.NewRecorder()
@@ -125,7 +126,7 @@ func TestRateLimit_ReadsXRealIP(t *testing.T) {
 	}
 
 	// Second request from same real IP — burst exhausted.
-	req2 := httptest.NewRequest(http.MethodPost, "/", nil)
+	req2 := httptest.NewRequest(http.MethodPost, "/", http.NoBody)
 	req2.RemoteAddr = "127.0.0.1:0"
 	req2.Header.Set("X-Real-IP", "5.5.5.5")
 	w2 := httptest.NewRecorder()

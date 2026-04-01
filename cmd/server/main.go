@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+
 	"github.com/sudores/twt-test-task/pkg/config"
 	"github.com/sudores/twt-test-task/pkg/middleware"
 	"github.com/sudores/twt-test-task/pkg/proxy"
@@ -29,14 +30,14 @@ func main() {
 	p, err := proxy.New(proxy.Config{
 		UpstreamURL: cfg.Proxy.UpstreamURL,
 		Timeout:     cfg.Proxy.Timeout.Duration,
-	}, logger)
+	}, &logger)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create proxy")
 	}
 
 	handler := p.Handler()
 	if cfg.RateLimit.Enabled {
-		rl := middleware.RateLimit(cfg.RateLimit.RequestsPerSecond, cfg.RateLimit.Burst, logger)
+		rl := middleware.RateLimit(cfg.RateLimit.RequestsPerSecond, cfg.RateLimit.Burst, &logger)
 		handler = rl(handler)
 	}
 

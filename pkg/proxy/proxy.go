@@ -45,11 +45,11 @@ type Config struct {
 type Proxy struct {
 	upstream   *url.URL
 	httpClient *http.Client
-	logger     zerolog.Logger
+	logger     *zerolog.Logger
 }
 
 // New creates a new Proxy from the given config.
-func New(cfg Config, logger zerolog.Logger) (*Proxy, error) {
+func New(cfg Config, logger *zerolog.Logger) (*Proxy, error) {
 	u, err := url.Parse(cfg.UpstreamURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid upstream URL: %w", err)
@@ -111,7 +111,7 @@ func (p *Proxy) handleRPC(w http.ResponseWriter, r *http.Request) {
 }
 
 // forward sends body to the upstream and returns the raw response bytes + status code.
-func (p *Proxy) forward(ctx context.Context, body []byte) ([]byte, int, error) {
+func (p *Proxy) forward(ctx context.Context, body []byte) (data []byte, statusCode int, err error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.upstream.String(), bytes.NewReader(body))
 	if err != nil {
 		return nil, 0, fmt.Errorf("build request: %w", err)
@@ -126,7 +126,7 @@ func (p *Proxy) forward(ctx context.Context, body []byte) ([]byte, int, error) {
 	}
 	defer resp.Body.Close()
 
-	data, err := io.ReadAll(resp.Body)
+	data, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, resp.StatusCode, fmt.Errorf("read response: %w", err)
 	}
