@@ -1,6 +1,6 @@
 module "acm" {
   source  = "terraform-aws-modules/acm/aws"
-  version = "~>5.1"
+  version = "~>6.3"
 
   domain_name = var.domain
 

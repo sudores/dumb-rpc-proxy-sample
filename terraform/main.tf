@@ -41,8 +41,7 @@ module "rpc_proxy" {
   subnet_ids = module.vpc.private_subnet_ids
   cluster_id = module.ecs.cluster_id
   domain     = local.domain[local.env]
-  image      = "PLACEHOLDER" # replace with ECR image URI
-  secret_arn = "PLACEHOLDER" # replace with Secrets Manager ARN
+  image      = "vepl/twt-rpc-proxy:latest" # replace with ECR image URI
   ingress_rules = [
     {
       from_port   = 8080

@@ -9,7 +9,7 @@ resource "aws_ecs_service" "this" {
   cluster                = var.cluster_id
   task_definition        = aws_ecs_task_definition.this.arn
   launch_type            = "FARGATE"
-  desired_count          = 1
+  desired_count          = var.desired_count
   enable_execute_command = true
 
   network_configuration {
@@ -63,14 +63,14 @@ resource "aws_ecs_task_definition" "this" {
       portMappings = [
         { containerPort = local.container_port, hostPort = local.container_port }
       ]
-      secrets = [
-        { name = "UPSTREAM_URL", valueFrom = "${var.secret_arn}:UPSTREAM_URL::" },
+      environment = [
+        { name = "UPSTREAM_URL", value = var.upstream_url },
       ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
           awslogs-group         = aws_cloudwatch_log_group.this.name
-          awslogs-region        = data.aws_region.this.name
+          awslogs-region        = data.aws_region.this.id
           awslogs-stream-prefix = local.container_name
         }
       }
@@ -139,41 +139,35 @@ resource "aws_iam_role" "ecs_task_execution_role" {
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_role" {
-  for_each = {
-    AmazonECSTaskExecutionRolePolicy = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-    SecretsManagerRO                 = aws_iam_policy.secrets_manager_ro.arn
-  }
   role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = each.value
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_task_role" {
-  for_each = {
-    AmazonSSMFullAccess = "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
-  }
   role       = aws_iam_role.ecs_task_role.name
-  policy_arn = each.value
+  policy_arn = aws_iam_policy.ecs_exec.arn
 }
 
-resource "aws_iam_policy" "secrets_manager_ro" {
-  name        = "${var.name}-SecretsManagerRO-${local.service_name}"
-  description = "Read access to Secrets Manager for ${var.name} ${local.service_name}"
+resource "aws_iam_policy" "ecs_exec" {
+  name        = "${var.name}-ECSExec-${local.service_name}"
+  description = "Minimum permissions for ECS Exec for ${local.service_name}"
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Effect = "Allow"
       Action = [
-        "secretsmanager:GetSecretValue",
-        "secretsmanager:DescribeSecret",
+        "ssmmessages:CreateControlChannel",
+        "ssmmessages:CreateDataChannel",
+        "ssmmessages:OpenControlChannel",
+        "ssmmessages:OpenDataChannel",
       ]
-      Resource = [var.secret_arn]
+      Resource = "*"
     }]
   })
 }
 
 data "aws_region" "this" {}
-data "aws_caller_identity" "this" {}
 data "aws_subnet" "this" {
   id = tolist(var.subnet_ids)[0]
 }

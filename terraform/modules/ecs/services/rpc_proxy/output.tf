@@ -4,11 +4,12 @@ output "lb_rules" {
     rpc_proxy = {
       priority = 10
       actions = [{
-        type             = "forward"
-        target_group_arn = aws_lb_target_group.this.arn
+        forward = {
+          target_group_arn = aws_lb_target_group.this.arn
+        }
       }]
       conditions = [
-        { host_header = { values = [var.domain] } },
+        { host_header  = { values = [var.domain] } },
         { path_pattern = { values = ["/*"] } },
       ]
     }

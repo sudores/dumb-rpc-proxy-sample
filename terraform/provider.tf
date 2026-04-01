@@ -7,7 +7,7 @@ terraform {
   }
   required_version = "~>1.11"
   backend "s3" {
-    bucket = "twt-main-gzttkorg"
+    bucket = "twt-gzttkorg-main-tfstate"
     key    = "tfstate"
     region = "us-east-1"
   }

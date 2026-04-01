@@ -5,11 +5,17 @@ variable "name" {
 
 variable "tags" {
   type        = map(string)
-  description = "Tags for resoruces"
+  description = "Tags for resources"
   default     = null
 }
 
 variable "subnet_ids" {
   type        = set(string)
-  description = "Set of subnets cluster will rezide in"
+  description = "Subnet IDs for the EC2 autoscaling group"
+}
+
+variable "instance_type" {
+  type        = string
+  default     = "t3.small"
+  description = "EC2 instance type for ECS container instances"
 }

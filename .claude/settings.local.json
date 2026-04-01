@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(go version:*)"
+      "Bash(go version:*)",
+      "WebSearch",
+      "WebFetch(domain:registry.terraform.io)"
     ]
   }
 }
