@@ -1,0 +1,18 @@
+server:
+  port: ${PORT:-8080}
+  read_timeout: ${READ_TIMEOUT:-15s}
+  write_timeout: ${WRITE_TIMEOUT:-35s}
+  idle_timeout: ${IDLE_TIMEOUT:-60s}
+
+proxy:
+  upstream_url: "${UPSTREAM_URL:-https://polygon.drpc.org}"
+  timeout: ${TIMEOUT:-30s}
+
+rate_limit:
+  enabled: ${RATE_LIMIT_ENABLED:-true}
+  requests_per_second: ${RATE_LIMIT_RPS:-100}
+  burst: ${RATE_LIMIT_BURST:-200}
+
+log:
+  level: "${LOG_LEVEL:-info}"
+  pretty: ${LOG_PRETTY:-false}

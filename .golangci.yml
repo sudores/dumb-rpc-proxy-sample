@@ -1,0 +1,45 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosimple
+    - gocritic
+    - gofmt
+    - goimports
+    - misspell
+    - bodyclose
+    - noctx
+    - prealloc
+    - revive
+    - exhaustive
+
+linters-settings:
+  goimports:
+    local-prefixes: github.com/sudores/twt-test-task
+
+  revive:
+    rules:
+      - name: exported
+      - name: error-return
+      - name: error-naming
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: package-comments
+        disabled: true
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+
+issues:
+  max-same-issues: 0
+  fix: false
