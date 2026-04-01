@@ -41,6 +41,7 @@ linters:
       - third_party$
       - builtin$
       - examples$
+      - _test\.go$
 issues:
   max-same-issues: 0
   fix: false
@@ -58,3 +59,4 @@ formatters:
       - third_party$
       - builtin$
       - examples$
+      - _test\.go$
